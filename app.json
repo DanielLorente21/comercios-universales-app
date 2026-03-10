@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "ComerciosApp",
+    "slug": "comercios-universales",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2C4A8C"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.comerciosuniversales.permisos",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tu galería para cambiar tu foto de perfil.",
+        "NSCameraUsageDescription": "Necesitamos acceso a tu cámara para tomar tu foto de perfil."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#2C4A8C"
+      },
+      "package": "com.comerciosuniversales.permisos",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Necesitamos acceso a tu galería para cambiar tu foto de perfil.",
+          "cameraPermission": "Necesitamos acceso a tu cámara para tomar tu foto de perfil."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#2C4A8C",
+          "sounds": []
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "26283780-a585-49bb-bb13-0cb62a76b792"
+      }
+    }
+  }
+}
