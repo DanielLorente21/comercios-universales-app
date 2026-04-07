@@ -20,23 +20,9 @@ npm install
 ### 3. Configurar variables de entorno
 ```bash
 cp .env.example .env
-```
-Edita el archivo `.env` y rellena los valores reales. Puedes obtenerlos en:
-- **Firebase API Key**: [Firebase Console](https://console.firebase.google.com) → Configuración del proyecto
-- **Drive API Key**: [Google Cloud Console](https://console.cloud.google.com) → APIs & Services → Credentials
-- **Sheet ID**: ID de tu Google Sheet (aparece en la URL)
 
-### 4. Iniciar la app
-```bash
-# Desarrollo web
-npx expo start --web
 
-# Tunnel (para acceso remoto)
-npx expo start --tunnel
 
-# Android
-npx expo start --android
-```
 
 ---
 
@@ -74,14 +60,3 @@ solucontrol/
 - **Hosting**: Firebase Hosting
 - **Notificaciones**: Expo Notifications (FCM)
 
----
-
-## 📦 Deploy
-
-```bash
-# Build web
-npx expo export --platform web
-
-# Deploy a Firebase Hosting
-firebase deploy --only hosting
-```
