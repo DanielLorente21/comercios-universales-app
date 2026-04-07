@@ -1,41 +1,70 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# ══════════════════════════════════════════════════════
+#  .gitignore — / Comercios Universales
+#  ⚠️  NO elimines las secciones marcadas como CRÍTICAS
+# ══════════════════════════════════════════════════════
 
-# dependencies
+# ── CRÍTICO: Variables de entorno ──────────────────────
+# Estos archivos contienen API keys y contraseñas
+.env
+.env.local
+.env.production
+.env.staging
+.env*.local
+constantsconfig.js
+
+# ── CRÍTICO: Credenciales Firebase / GSoogle ────────────
+# Nunca subir estos archivos a ningún repositorio
+google-services.json
+GoogleService-Info.plist
+serviceAccountKey.json
+firebase-adminsdk*.json
+*.credentials.json
+
+# ── CRÍTICO: Scripts internos con datos sensibles ──────
+# Contienen códigos reales de empleados y lógica interna
+stress_test.js
+monitor.js
+
+# ── Dependencias ───────────────────────────────────────
 node_modules/
 
-# Expo
+# ── Expo ───────────────────────────────────────────────
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# ── Native (generado automáticamente) ─────────────────
+/ios
+/android
 .kotlin/
+
+# ── Certificados y llaves nativas ─────────────────────
 *.orig.*
 *.jks
 *.p8
 *.p12
 *.key
 *.mobileprovision
+*.pem
 
-# Metro
+# ── Metro bundler ──────────────────────────────────────
 .metro-health-check*
 
-# debug
+# ── Logs de debug ──────────────────────────────────────
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+firebase-debug.log
+firebase-debug.*.log
 
-# macOS
+# ── Sistema operativo ──────────────────────────────────
 .DS_Store
-*.pem
+Thumbs.db
 
-# local env files
-.env*.local
-
-# typescript
+# ── TypeScript ─────────────────────────────────────────
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
+# Service Account Keys (cualquier nombre)
+*adminsdk*.json
+permisoapplorenti*.json

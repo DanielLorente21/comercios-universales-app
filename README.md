@@ -1,11 +1,87 @@
-# Sample Snack app
+# — Sistema de Gestión de Permisos
 
-Open the `App.js` file to start writing some code. You can preview the changes directly on your phone or tablet by scanning the **QR code** or use the iOS or Android emulators. When you're done, click **Save** and share the link!
+Aplicación móvil y web para gestión de permisos y ausencias de empleados, desarrollada con **React Native + Expo** y **Firebase** como backend.
 
-When you're ready to see everything that Expo provides (or if you want to use your own editor) you can **Download** your project and use it with [expo cli](https://docs.expo.dev/get-started/installation/#expo-cli)).
+---
 
-All projects created in Snack are publicly available, so you can easily share the link to this project via link, or embed it on a web page with the `<>` button.
+## 🚀 Instalación
 
-If you're having problems, you can tweet to us [@expo](https://twitter.com/expo) or ask in our [forums](https://forums.expo.dev/c/expo-dev-tools/61) or [Discord](https://chat.expo.dev/).
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/tu-usuario/solucontrol.git
+cd solucontrol
+```
 
-Snack is Open Source. You can find the code on the [GitHub repo](https://github.com/expo/snack).
+### 2. Instalar dependencias
+```bash
+npm install
+```
+
+### 3. Configurar variables de entorno
+```bash
+cp .env.example .env
+```
+Edita el archivo `.env` y rellena los valores reales. Puedes obtenerlos en:
+- **Firebase API Key**: [Firebase Console](https://console.firebase.google.com) → Configuración del proyecto
+- **Drive API Key**: [Google Cloud Console](https://console.cloud.google.com) → APIs & Services → Credentials
+- **Sheet ID**: ID de tu Google Sheet (aparece en la URL)
+
+### 4. Iniciar la app
+```bash
+# Desarrollo web
+npx expo start --web
+
+# Tunnel (para acceso remoto)
+npx expo start --tunnel
+
+# Android
+npx expo start --android
+```
+
+---
+
+## 🏗️ Estructura del proyecto
+
+```
+solucontrol/
+├── App.js                  # Componente principal
+├── constantsconfig.js      # Configuración centralizada (sin claves hardcodeadas)
+├── AdminUserModal.js       # Modal de gestión de usuarios
+├── SuperAdmin.js           # Panel de superadministrador
+├── GestionFestivos.js      # Gestión de días festivos
+├── functions/              # Firebase Cloud Functions
+├── firestore.rules         # Reglas de seguridad de Firestore
+├── firebase.json           # Configuración de Firebase Hosting
+├── .env.example            # Plantilla de variables de entorno
+└── .gitignore              # Archivos excluidos del repositorio
+```
+
+---
+
+## 🔐 Seguridad
+
+- Las API keys y credenciales **nunca** están en el código fuente
+- Todas las claves se cargan desde el archivo `.env` (no incluido en el repo)
+- El archivo `google-services.json` está excluido del repositorio
+- Las reglas de Firestore están configuradas para restringir acceso por rol
+
+---
+
+## 🔧 Stack tecnológico
+
+- **Frontend**: React Native + Expo (~54)
+- **Backend**: Firebase Firestore + Firebase Auth + Cloud Functions
+- **Hosting**: Firebase Hosting
+- **Notificaciones**: Expo Notifications (FCM)
+
+---
+
+## 📦 Deploy
+
+```bash
+# Build web
+npx expo export --platform web
+
+# Deploy a Firebase Hosting
+firebase deploy --only hosting
+```

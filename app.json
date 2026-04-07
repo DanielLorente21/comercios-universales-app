@@ -1,67 +1,57 @@
 {
   "expo": {
     "name": "ComerciosApp",
-    "slug": "comercios-universales",
+    "slug": "comercios-universales-permisos",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logocomercios.png",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "updates": {
+      "url": "https://u.expo.dev/bc8bdb50-4561-4e06-99c4-778693833d30",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "runtimeVersion": "1.0.0",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/logocomercios.png",
       "resizeMode": "contain",
       "backgroundColor": "#2C4A8C"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.comerciosuniversales.permisos",
-      "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Necesitamos acceso a tu galería para cambiar tu foto de perfil.",
-        "NSCameraUsageDescription": "Necesitamos acceso a tu cámara para tomar tu foto de perfil."
-      }
+      "supportsTablet": true,
+      "bundleIdentifier": "com.comerciosuniversales.permisos"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
+      "package": "com.comerciosuniversales.permisos",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/logocomercios.png",
         "backgroundColor": "#2C4A8C"
       },
-      "package": "com.comerciosuniversales.permisos",
-      "permissions": [
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.RECEIVE_BOOT_COMPLETED",
-        "android.permission.VIBRATE",
-        "android.permission.POST_NOTIFICATIONS"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+      "edgeToEdgeEnabled": true
     },
     "plugins": [
       [
-        "expo-image-picker",
-        {
-          "photosPermission": "Necesitamos acceso a tu galería para cambiar tu foto de perfil.",
-          "cameraPermission": "Necesitamos acceso a tu cámara para tomar tu foto de perfil."
-        }
-      ],
-      [
         "expo-notifications",
         {
-          "icon": "./assets/icon.png",
-          "color": "#2C4A8C",
-          "sounds": []
+          "icon": "./assets/logocomercios.png",
+          "color": "#2C4A8C"
         }
       ]
     ],
-    "extra": {
-      "eas": {
-        "projectId": "26283780-a585-49bb-bb13-0cb62a76b792"
-      }
+    "web": {
+      "favicon": "./assets/logocomercios.png"
+    },
+    "description": "Sistema de Permisos Laborales — Comercios Universales",
+  "extra": {
+  "eas": {
+    "projectId": "bc8bdb50-4561-4e06-99c4-778693833d30"
+  }
+},
+  "dependencies": {
     }
+    
   }
 }
