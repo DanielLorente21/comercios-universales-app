@@ -193,15 +193,30 @@ exports.acumularDiasIndividualAuto = functions.pubsub
     // Filtro optimizado por diaIngreso. Fallback a todos si el índice no existe.
     let usuariosSnapshot;
     try {
-      usuariosSnapshot = await db.collection("usuarios")
-        .where("diaIngreso", "in", diasCandidatos)
-        .get();
-      console.log(`🎯 Filtrado por diaIngreso: ${usuariosSnapshot.size} candidatos`);
-    } catch (e) {
-      console.log("⚠️ Fallback — leyendo todos los usuarios:", e.message);
-      usuariosSnapshot = await db.collection("usuarios").get();
-    }
-
+  usuariosSnapshot = await db.collection("usuarios")
+    .where("diaIngreso", "in", diasCandidatos)
+    .get();
+  console.log(`🎯 Filtrado por diaIngreso: ${usuariosSnapshot.size} candidatos`);
+  if (usuariosSnapshot.size === 0) {
+    console.log("⚠️ Sin candidatos por diaIngreso — fallback a todos los usuarios");
+    usuariosSnapshot = await db.collection("usuarios").get();
+  }
+} catch (e) {
+  console.log("⚠️ Fallback — leyendo todos los usuarios:", e.message);
+  usuariosSnapshot = await db.collection("usuarios").get();
+}try {
+  usuariosSnapshot = await db.collection("usuarios")
+    .where("diaIngreso", "in", diasCandidatos)
+    .get();
+  console.log(`🎯 Filtrado por diaIngreso: ${usuariosSnapshot.size} candidatos`);
+  if (usuariosSnapshot.size === 0) {
+    console.log("⚠️ Sin candidatos por diaIngreso — fallback a todos los usuarios");
+    usuariosSnapshot = await db.collection("usuarios").get();
+  }
+} catch (e) {
+  console.log("⚠️ Fallback — leyendo todos los usuarios:", e.message);
+  usuariosSnapshot = await db.collection("usuarios").get();
+}
     let batch           = db.batch();
     let totalProcesados = 0;
     let totalOmitidos   = 0;
@@ -284,7 +299,7 @@ exports.acumularDiasIndividualAuto = functions.pubsub
           `${anioHoy}-${String(mesHoy).padStart(2, "0")}-${String(diaEfectivo).padStart(2, "0")}`;
 
         batch.update(doc.ref, {
-          dias:              String(nuevosDias),
+          dias:              nuevosDias,
           ultimaAcumulacion: nuevaUltimaAcum,
           diaIngreso:        diaIng,   // asegurar campo para consultas optimizadas futuras
         });
