@@ -30,22 +30,23 @@ import AdminScreen         from './src/screens/AdminScreen';
 import LogoAnimado from './src/components/LogoAnimado';
 
 // Services
-import { fsGet, fsAdd, fsUpdate, fsQuery, buscarUsuario, refrescarUsuario, cargarFestivosSet } from './src/services/firestore';
+import { fsGet, fsAdd, fsUpdate, fsQuery, fsQueryRecientes, buscarUsuario, refrescarUsuario, cargarFestivosSet } from './src/services/firestore';
 import { codeToEmail, normalizarPass, guardarSesion, leerSesion, borrarSesion } from './src/services/auth';
 import { registrarPushToken, enviarNotificacion, crearNotificacion } from './src/services/notifications';
 import { generarPDF } from './src/services/pdf';
 
 // Utils & Constants
 import { calcularDias } from './src/utils/calcularDias';
-import { formatFechaHora, formatHora12, diffMinutos, REGEX_FECHA, validarFechas } from './src/utils/fechas';
+import { formatFechaHora, formatHora12, diffMinutos, REGEX_FECHA, validarFechas, parsearFecha } from './src/utils/fechas';
 import { AZUL, AZUL_CLARO, TEMAS, PROJECT_ID, API_KEY, DB_URL, AUTH_URL, AUTH_UPDATE_URL, LOGO, TIPOS } from './src/constants/config';
 
+
 // ── Jerarquía de roles ────────────────────────────────────────────────────
-const JERARQUIA = { dueno: 3, contralor: 2, jefe: 1, auxiliar: 0 };
+const JERARQUIA = { gerente: 3, contralor: 2, jefe: 1, auxiliar: 0 };
 
 const puedeAprobarA = (aprobador, solicitante) => {
   if (aprobador.codigo === solicitante.codigo) return false;
-  if (aprobador.rol === 'dueno') return true;
+  if (aprobador.rol === 'gerente') return true;
   if (aprobador.rol === 'contralor') return true;
   if (aprobador.rol === 'jefe')
     return aprobador.departamento === solicitante.departamento && solicitante.rol === 'auxiliar';
@@ -169,26 +170,55 @@ export default function App() {
   // ════════════════════════════════════════════════════════════════════════
   // CARGA DE DATOS
   // ════════════════════════════════════════════════════════════════════════
-  const cargarPermisos = async (usuarioRef) => {
-    setCargando(true);
-    try {
-      const ref = usuarioRef ?? usuario;
-      const esGerente = ref?.rol === 'dueno' || ref?.rol === 'contralor';
-      if (esGerente) {
-        setPermisos(await fsQuery('permisos', 'estado', 'Pendiente'));
-      } else {
-        const [misPerms, deptoPerms] = await Promise.all([
-          fsQuery('permisos', 'codigo', ref?.codigo ?? ''),
-          ref?.rol === 'jefe' ? fsQuery('permisos', 'departamento', ref?.departamento ?? '') : Promise.resolve([]),
-        ]);
-        const mapa = {};
-        [...misPerms, ...deptoPerms].forEach(p => { mapa[p.id] = p; });
-        setPermisos(Object.values(mapa));
-      }
-    } catch (e) { console.warn('Error cargando permisos:', e.message); }
-    ultimaCargaPermisos.current = Date.now();
-    setCargando(false);
-  };
+const buscarPermisosPorFechas = async (desde, hasta) => {
+  setCargando(true);
+  try {
+    const todos = await fsQuery('permisos', 'codigo', usuario?.codigo ?? '');
+    const fDesde = desde ? parsearFecha(desde) : null;
+    const fHasta = hasta ? parsearFecha(hasta) : null;
+    const filtrados = todos.filter(p => {
+      const f = parsearFecha(p.fechaInicio);
+      if (!f) return false;
+      if (fDesde && f < fDesde) return false;
+      if (fHasta && f > fHasta) return false;
+      return true;
+    });
+    setPermisos(prev => {
+      const mapa = {};
+      prev.forEach(p => { mapa[p.id] = p; });
+      filtrados.forEach(p => { mapa[p.id] = p; });
+      return Object.values(mapa);
+    });
+  } catch (e) { console.warn('Error buscando por fechas:', e.message); }
+  setCargando(false);
+};
+
+const cargarPermisos = async (usuarioRef) => {
+  setCargando(true);
+  try {
+    const ref = usuarioRef ?? usuario;
+    const esGerente = ref?.rol === 'gerente' || ref?.rol === 'contralor';
+    if (esGerente) {
+      const [pendientes, misPerms] = await Promise.all([
+        fsQuery('permisos', 'estado', 'Pendiente'),
+        fsQueryRecientes('permisos', 'codigo', ref?.codigo ?? '', 3),
+      ]);
+      const mapa = {};
+      [...pendientes, ...misPerms].forEach(p => { mapa[p.id] = p; });
+      setPermisos(Object.values(mapa));
+    } else {
+      const [misPerms, deptoPerms] = await Promise.all([
+        fsQueryRecientes('permisos', 'codigo', ref?.codigo ?? '', 3),
+        ref?.rol === 'jefe' ? fsQuery('permisos', 'departamento', ref?.departamento ?? '') : Promise.resolve([]),
+      ]);
+      const mapa = {};
+      [...misPerms, ...deptoPerms].forEach(p => { mapa[p.id] = p; });
+      setPermisos(Object.values(mapa));
+    }
+  } catch (e) { console.warn('Error cargando permisos:', e.message); }
+  ultimaCargaPermisos.current = Date.now();
+  setCargando(false);
+};
 
   const cargarNotificaciones = async (usuarioParam) => {
     const ref = usuarioParam ?? usuario;
@@ -282,6 +312,7 @@ export default function App() {
           motivo, estado: 'Pendiente',
           horasSolicitadas: String(hNum),
           horaAprobacion: '', horaRegreso: '', descuentoHoras: 'no',
+          creadoEn: new Date().toISOString(),
         });
         const aprobadores = usuarios.filter(u => u.codigo !== usuario.codigo && puedeAprobarA(u, usuario));
         await Promise.all(aprobadores.map(apr => Promise.all([
@@ -319,6 +350,7 @@ export default function App() {
         rol: usuario.rol, departamento: usuario.departamento || '',
         tipo: tipoFinal, fechaInicio, fechaFin, motivo, estado: 'Pendiente',
         ...extraDatos,
+        creadoEn: new Date().toISOString(),
       });
       const aprobadores = usuarios.filter(u => u.codigo !== usuario.codigo && puedeAprobarA(u, usuario));
       await Promise.all(aprobadores.map(apr => Promise.all([
@@ -576,6 +608,7 @@ export default function App() {
         descuento:    'no',
         diasDescontados: '0',
         esSuspension: 'true',
+        creadoEn: new Date().toISOString(),
       });
 
       // Notificar a aprobadores
@@ -683,7 +716,7 @@ export default function App() {
   const misPermisos = permisos.filter(p => p.codigo === usuario?.codigo);
   const permisosParaAprobar = permisos.filter(p => {
     if (p.codigo === usuario?.codigo) return false;
-    if (usuario?.rol === 'dueno' || usuario?.rol === 'contralor') return true;
+    if (usuario?.rol === 'gerente' || usuario?.rol === 'contralor') return true;
     const solicitante = usuarios.find(u => u.codigo === p.codigo);
     if (solicitante) return puedeAprobarA(usuario, solicitante);
     if (p.rol) return (p.departamento === usuario?.departamento && usuario?.rol === 'jefe' && p.rol === 'auxiliar');
@@ -842,12 +875,13 @@ export default function App() {
           />
         )}
         {tabActivo === 'historial' && (
-          <HistorialScreen
-            usuario={usuario} misPermisos={misPermisos} cargando={cargando}
-            festivosMapState={festivosMapState} T={T}
-            onActualizar={() => cargarPermisos(usuario)}
-            onMarcarRegreso={handleMarcarRegreso}
-          />
+         <HistorialScreen
+          usuario={usuario} misPermisos={misPermisos} cargando={cargando}
+          festivosMapState={festivosMapState} T={T}
+          onActualizar={() => cargarPermisos(usuario)}
+          onMarcarRegreso={handleMarcarRegreso}
+          onBuscarPorFechas={buscarPermisosPorFechas}
+         />
         )}
         {tabActivo === 'reporte' && (
           <ReporteScreen

@@ -16,7 +16,7 @@ import { REGEX_FECHA } from '../utils/fechas';
 const colorEstado = (e) => { if (e === 'Aprobado') return '#4CAF7D'; if (e === 'Rechazado') return '#EF5350'; return '#F59E0B'; };
 const iconoEstado = (e) => { if (e === 'Aprobado') return '✅'; if (e === 'Rechazado') return '❌'; return '⏳'; };
 const rolLabel    = (r) => {
-  if (r === 'dueno')     return '👑 Dueño';
+  if (r === 'gerente')     return '👑 Gerente';
   if (r === 'contralor') return '🏢 Contralor';
   if (r === 'jefe')      return '👔 Jefe de Área';
   return '🗂️ Auxiliar';
@@ -342,7 +342,7 @@ export default function AprobarScreen({
         <>
           <Text style={{ fontSize: 22, fontWeight: '800', color: T.texto, marginBottom: 2 }}>Aprobar Solicitudes</Text>
           <Text style={{ fontSize: 12, color: T.subTexto, marginBottom: 16 }}>
-            {usuario?.rol === 'dueno' || usuario?.rol === 'contralor'
+            {usuario?.rol === 'gerente' || usuario?.rol === 'contralor'
               ? 'Vista completa — Todos los departamentos'
               : `Dept: ${usuario?.departamento} — ${rolLabel(usuario?.rol)}`}
           </Text>

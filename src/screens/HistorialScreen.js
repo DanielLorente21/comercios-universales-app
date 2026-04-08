@@ -59,7 +59,9 @@ export default function HistorialScreen({
   T,
   onActualizar,
   onMarcarRegreso,
+  onBuscarPorFechas,
 }) {
+
   const [filtroHistorial,    setFiltroHistorial]    = useState('Todos');
   const [ordenHistorial,     setOrdenHistorial]     = useState('reciente');
   const [filtroFechaDesde,   setFiltroFechaDesde]   = useState('');
@@ -172,14 +174,23 @@ export default function HistorialScreen({
               />
             </View>
           </View>
-          {(filtroFechaDesde || filtroFechaHasta) && (
-            <TouchableOpacity
+              {(filtroFechaDesde || filtroFechaHasta) && (
+             <TouchableOpacity
               style={{ backgroundColor: '#FEECEC', borderRadius: 10, padding: 10, alignItems: 'center' }}
-              onPress={() => { setFiltroFechaDesde(''); setFiltroFechaHasta(''); }}
-            >
+              onPress={() => { setFiltroFechaDesde(''); setFiltroFechaHasta(''); onActualizar(); }}
+             >
               <Text style={{ color: '#EF5350', fontWeight: '700', fontSize: 13 }}>✕ Limpiar fechas</Text>
-            </TouchableOpacity>
+             </TouchableOpacity>
+             )}
+             {fDesde && fHasta && (
+             <TouchableOpacity
+             style={{ backgroundColor: '#1a1a2e', borderRadius: 10, padding: 10, alignItems: 'center', marginTop: 6 }}
+             onPress={() => onBuscarPorFechas(filtroFechaDesde, filtroFechaHasta)}
+             >  
+             <Text style={{ color: 'white', fontWeight: '700', fontSize: 13 }}>🔍 Buscar en ese período</Text>
+             </TouchableOpacity>
           )}
+          
           {hayFiltroFecha && (
             <View style={{ backgroundColor: AZUL_CLARO, borderRadius: 10, padding: 8, alignItems: 'center' }}>
               <Text style={{ color: AZUL, fontWeight: '600', fontSize: 12 }}>
