@@ -10,12 +10,12 @@ import { PROJECT_ID, API_KEY, DB_URL } from '../constants/config';
 
 // ── Helper interno: convierte un campo Firestore a su valor JS ────────────
 // Centraliza la conversión para que fsGet, fsQuery y buscarUsuario sean consistentes.
-const campoAValor = (campo) =>
-  campo.stringValue
-  ?? campo.integerValue
-  ?? campo.doubleValue
-  ?? (campo.booleanValue !== undefined ? String(campo.booleanValue) : undefined)
-  ?? '';
+const campoAValor = (campo) => {
+  if (campo.doubleValue  !== undefined) return campo.doubleValue;
+  if (campo.integerValue !== undefined) return Number(campo.integerValue);
+  if (campo.booleanValue !== undefined) return String(campo.booleanValue);
+  return campo.stringValue ?? '';
+};
 
 // ─── Operaciones básicas CRUD ─────────────────────────────────────────────────
 

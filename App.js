@@ -253,7 +253,8 @@ export default function App() {
 
   // ── Descuenta días y actualiza estado local ───────────────────────────
   const aplicarDescuento = (codigoEmpleado, empleadoId, diasActuales, diasADescontar) => {
-    const nuevosDias = Math.max(0, (Math.round(diasActuales * 100) - Math.round(diasADescontar * 100)) / 100);
+   const actual = parseFloat(diasActuales) || 0;
+   const nuevosDias = Math.max(0, (Math.round(actual * 100) - Math.round(diasADescontar * 100)) / 100);
     persistirDias(empleadoId, nuevosDias);
     if (codigoEmpleado === usuario?.codigo) setDiasDisponibles(nuevosDias);
     setUsuarios(prev => prev.map(u => u.codigo === codigoEmpleado ? { ...u, dias: String(nuevosDias) } : u));
