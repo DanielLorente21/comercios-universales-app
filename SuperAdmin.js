@@ -14,6 +14,7 @@ try { FileSystem     = require('expo-file-system');     } catch {} // Keep this 
 try { Sharing        = require('expo-sharing');         } catch {} // Keep this for sharing files
 
 import config from './constantsconfig'; // Importar la configuración centralizada
+import * as XLSX from 'xlsx';
 
 // Helper para formato de email
 const codeToEmail = (code) => `${code.toLowerCase().trim()}@comercios.app`;
@@ -322,7 +323,7 @@ export default function SuperAdmin({ onSalir }) {
 
   const [nuevoUser] = useState({
     codigo: '', nombre: '', cargo: '', departamento: '',
-    rol: 'empleado', password: '', dias: '15', fechaIngreso: ''
+    rol: 'auxiliar', password: '', dias: '15', fechaIngreso: ''
   });
 
   const [filtroEstadoSA,       setFiltroEstadoSA]       = useState('Todos');
@@ -529,111 +530,166 @@ export default function SuperAdmin({ onSalir }) {
     return null;
   };
 
-  const leerExcelDrive = async () => {
-    const url  = `https://sheets.googleapis.com/v4/spreadsheets/${config.SHEET_ID}/values/Sheet1?key=${config.DRIVE_API_KEY}&valueRenderOption=FORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
-    const res  = await fetch(url);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message);
-    if (!data.values || data.values.length === 0) throw new Error('La hoja está vacía');
+const seleccionarYCargarExcel = async () => {
+  try {
+    // ── Seleccionar archivo ──────────────────────────────────────────────
+    let fileData = null;
 
-    let deptActual = '';
-    const empleados = [];
-
-    for (let i = 0; i < data.values.length; i++) {
-      const row = data.values[i];
-      if (row[0]?.toString().trim() === 'Departamento:') {
-        deptActual = row[6]?.toString().trim() || row[3]?.toString().trim() || '';
-        continue;
-      }
-      const codigo = row[1]?.toString().trim() ?? '';
-      if (!codigo || !/^\d+$/.test(codigo)) continue;
-      const nombres      = row[4]?.toString().trim() ?? '';
-      const apellidos    = row[8]?.toString().trim() ?? '';
-      const fechaIngreso = normalizarFecha(row[23]);
-      if (!fechaIngreso) continue;
-      empleados.push({
-        codigo,
-        nombre:            `${nombres} ${apellidos}`.trim(),
-        cargo:             'Empleado',
-        departamento:      deptActual,
-        rol:               'empleado',
-        password:          codigo,
-        dias:              '15',
-        fechaIngreso,
-        ultimaAcumulacion: '',
+    if (Platform.OS === 'web') {
+      fileData = await new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.xlsx,.xls';
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) { resolve(null); return; }
+          const reader = new FileReader();
+          reader.onload = (ev) => resolve({ data: ev.target.result, name: file.name });
+          reader.readAsArrayBuffer(file);
+        };
+        input.click();
       });
+    } else {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+               'application/vnd.ms-excel'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      const base64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      fileData = { data: binary.buffer, name: asset.name };
     }
-    return empleados;
-  };
 
-  const iniciarCargaExcel = async () => {
-    setCargaCoriendo(true);
-    setCargaProgreso(null);
-    setCargaResultado(null);
-    setEmpleadosDrive([]);
+    if (!fileData) return;
+
+    // ── Parsear Excel ────────────────────────────────────────────────────
+    const workbook  = XLSX.read(fileData.data, { type: 'array' });
+    const sheet     = workbook.Sheets[workbook.SheetNames[0]];
+    const rows      = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    if (rows.length === 0) {
+      Alert.alert('⚠️ Sin datos', 'El archivo está vacío o no tiene el formato correcto.');
+      return;
+    }
+
+    // ── Validar columnas requeridas ──────────────────────────────────────
+    const primeraFila = rows[0];
+    if (!('codigo' in primeraFila) || !('nombre' in primeraFila) || !('fechaIngreso' in primeraFila)) {
+      Alert.alert('❌ Formato incorrecto',
+        'El Excel debe tener las columnas: codigo, nombre, fechaIngreso\n\nOpcionales: cargo, departamento, rol, fechaNacimiento');
+      return;
+    }
+
+    // ── Parsear empleados ────────────────────────────────────────────────
+    const empleados = rows.map(row => ({
+      codigo:          String(row.codigo ?? '').trim(),
+      nombre:          String(row.nombre  ?? '').trim().toUpperCase(),
+      cargo:           String(row.cargo   ?? 'Empleado').trim().toUpperCase() || 'Empleado',
+      departamento:    String(row.departamento ?? '').trim().toLowerCase(),
+      rol:             String(row.rol     ?? 'auxiliar').trim().toLowerCase() || 'auxiliar',
+      fechaIngreso:    String(row.fechaIngreso ?? '').trim(),
+      fechaNacimiento: String(row.fechaNacimiento ?? '').trim(),
+      password:        String(row.codigo ?? '').trim(),
+      dias:            '15',
+    })).filter(e => e.codigo && /^\d+$/.test(e.codigo) && e.fechaIngreso);
+
+    if (empleados.length === 0) {
+      Alert.alert('⚠️ Sin empleados válidos', 'No se encontraron filas con código numérico y fecha de ingreso válidos.');
+      return;
+    }
+
+    // ── Confirmar carga ──────────────────────────────────────────────────
+    Alert.alert(
+      '📂 Confirmar carga',
+      `Se encontraron ${empleados.length} empleados en "${fileData.name}".\n\n¿Deseas cargarlos?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cargar', onPress: () => procesarCargaEmpleados(empleados) },
+      ]
+    );
+
+  } catch (e) {
+    Alert.alert('❌ Error', `No se pudo leer el archivo:\n${e.message}`);
+  }
+};
+
+const procesarCargaEmpleados = async (empleados) => {
+  setCargaCoriendo(true);
+  setCargaProgreso(null);
+  setCargaResultado(null);
+
+  let actualizados = 0, creados = 0, errores = 0;
+
+  for (let i = 0; i < empleados.length; i++) {
+    const emp = empleados[i];
     try {
-      const empleados = await leerExcelDrive();
-      setEmpleadosDrive(empleados);
-      if (empleados.length === 0) {
-        Alert.alert('⚠️ Sin datos', 'No se encontraron empleados. Verifica que el archivo esté compartido correctamente.');
-        setCargaCoriendo(false);
-        return;
-      }
-      let actualizados = 0, creados = 0, errores = 0;
-      for (let i = 0; i < empleados.length; i++) {
-          const emp = empleados[i];
-          try {
-            const res  = await fetch(`${config.DB_URL}:runQuery?key=${config.FIREBASE_API_KEY}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ structuredQuery: {
-                from: [{ collectionId: 'usuarios' }],
-                where: { fieldFilter: { field: { fieldPath: 'codigo' }, op: 'EQUAL', value: { stringValue: emp.codigo } } },
-                limit: 1
-              }})
-            });
-            const data = await res.json();
-            if (data[0]?.document) {
-              const docId = data[0].document.name.split('/').pop();
-              await fsUpdate('usuarios', docId, { fechaIngreso: emp.fechaIngreso, departamento: emp.departamento });
-              actualizados++;
-            } else {
-              // Registro automático en Firebase Auth para empleados nuevos
-              const authRes = await fetch(config.AUTH_SIGNUP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: codeToEmail(emp.codigo), password: emp.codigo, returnSecureToken: true })
-              });
-              const authData = await authRes.json();
+      const res  = await fetch(`${config.DB_URL}:runQuery?key=${config.FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: {
+          from: [{ collectionId: 'usuarios' }],
+          where: { fieldFilter: { field: { fieldPath: 'codigo' }, op: 'EQUAL', value: { stringValue: emp.codigo } } },
+          limit: 1
+        }})
+      });
+      const data = await res.json();
 
-              await fsAdd('usuarios', {
-                codigo:            emp.codigo,
-                nombre:            emp.nombre,
-                cargo:             emp.cargo,
-                departamento:      emp.departamento,
-                rol:               emp.rol,
-                password:          emp.password,
-                uid:               authData.localId || '',
-                dias:              emp.dias,
-                fechaIngreso:      emp.fechaIngreso,
-                ultimaAcumulacion: '',
-              });
-              creados++;
-            }
-          } catch (e) {
-            errores++;
-            console.error('Error processing employee:', e);
-          }
-        setCargaProgreso({ actual: i + 1, total: empleados.length, actualizados, creados, errores });
-        await new Promise(r => setTimeout(r, 50));
+      if (data[0]?.document) {
+        // Empleado existe — actualizar datos
+        const docId = data[0].document.name.split('/').pop();
+        const update = {
+          fechaIngreso:    emp.fechaIngreso,
+          departamento:    emp.departamento,
+          nombre:          emp.nombre,
+          cargo:           emp.cargo,
+          rol:             emp.rol,
+        };
+        if (emp.fechaNacimiento) update.fechaNacimiento = emp.fechaNacimiento;
+        await fsUpdate('usuarios', docId, update);
+        actualizados++;
+      } else {
+        // Empleado nuevo — crear en Auth y Firestore
+        const authRes = await fetch(config.AUTH_SIGNUP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: codeToEmail(emp.codigo), password: emp.codigo, returnSecureToken: true })
+        });
+        const authData = await authRes.json();
+
+        const nuevoEmp = {
+          codigo:            emp.codigo,
+          nombre:            emp.nombre,
+          cargo:             emp.cargo,
+          departamento:      emp.departamento,
+          rol:               emp.rol,
+          password:          emp.password,
+          uid:               authData.localId || '',
+          dias:              emp.dias,
+          fechaIngreso:      emp.fechaIngreso,
+          ultimaAcumulacion: '',
+          empresaId:         'comercios-universales',
+          estado:            'Activo',
+        };
+        if (emp.fechaNacimiento) nuevoEmp.fechaNacimiento = emp.fechaNacimiento;
+        await fsAdd('usuarios', nuevoEmp);
+        creados++;
       }
-      setCargaResultado({ total: empleados.length, actualizados, creados, errores });
     } catch (e) {
-      Alert.alert('❌ Error', `No se pudo leer el Excel:\n${e.message}\n\nVerifica que esté compartido como "Cualquier persona con el enlace".`);
+      errores++;
+      console.error('Error procesando empleado:', emp.codigo, e.message);
     }
-    setCargaCoriendo(false);
-    await cargarDatos(); // Refresh data after import
-  };
+    setCargaProgreso({ actual: i + 1, total: empleados.length, actualizados, creados, errores });
+    await new Promise(r => setTimeout(r, 50));
+  }
+
+  setCargaResultado({ total: empleados.length, actualizados, creados, errores });
+  setCargaCoriendo(false);
+  await cargarDatos();
+};
 
   if (pantalla === 'login') return (
     <SafeAreaView style={sa.loginBg}>
@@ -1320,9 +1376,35 @@ export default function SuperAdmin({ onSalir }) {
     setResultado({ total: empleados.length, actualizados, creados, protegidos, errores });
   };
 
-  const iniciarPlantillaExcel = async () => {
-    setPlantillaCoriendo(true); setPlantillaProgreso(null); setPlantillaResultado(null);
-    try {
+ const iniciarPlantillaExcel = async () => {
+  setPlantillaCoriendo(true); setPlantillaProgreso(null); setPlantillaResultado(null);
+  try {
+    let base64 = '';
+    let XLSX;
+    try { XLSX = require('xlsx'); } catch { Alert.alert('Error', 'Instala el paquete xlsx: npm install xlsx'); setPlantillaCoriendo(false); return; }
+
+    if (Platform.OS === 'web') {
+      base64 = await new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.xlsx,.xls';
+        input.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) { resolve(null); return; }
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const arr = new Uint8Array(ev.target.result);
+            let binary = '';
+            arr.forEach(b => binary += String.fromCharCode(b));
+            resolve(btoa(binary));
+          };
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        };
+        input.click();
+      });
+      if (!base64) { setPlantillaCoriendo(false); return; }
+    } else {
       if (!DocumentPicker || !FileSystem) {
         Alert.alert('No disponible', 'Esta función requiere el APK compilado o Expo Go.');
         setPlantillaCoriendo(false); return;
@@ -1330,40 +1412,40 @@ export default function SuperAdmin({ onSalir }) {
       const result = await DocumentPicker.getDocumentAsync({ type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', copyToCacheDirectory: true });
       if (result.canceled || !result.assets?.[0]) { setPlantillaCoriendo(false); return; }
       const fileUri = result.assets[0].uri;
-      let base64 = '';
       try {
         base64 = await FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType?.Base64 || 'base64' });
       } catch {
         const FSL = require('expo-file-system/legacy');
         base64 = await FSL.readAsStringAsync(fileUri, { encoding: FSL.EncodingType.Base64 });
       }
-      let XLSX;
-      try { XLSX = require('xlsx'); } catch { Alert.alert('Error', 'Instala el paquete xlsx: npm install xlsx'); setPlantillaCoriendo(false); return; }
-      const workbook = XLSX.read(base64, { type: 'base64' });
-      const sheet    = workbook.Sheets['Empleados'] ?? workbook.Sheets[workbook.SheetNames[0]];
-      const rows     = XLSX.utils.sheet_to_json(sheet, { defval: '', range: 2 }); // range:2 = leer desde fila 3 (0-indexed)
-      const empleados = rows
-        .filter(r => r['codigo*'] && String(r['codigo*']).trim() !== '')
-        .map(r => ({
-          codigo:               String(r['codigo*']).trim(),
-          nombre:               String(r['nombre*'] || '').trim(),
-          cargo:                String(r['cargo*']  || 'Empleado').trim(),
-          departamento:         String(r['sub_departamento'] || r['departamento*'] || '').trim(),
-          rol:                  String(r['rol*'] || 'auxiliar').trim(),
-          password:             String(r['password*'] || r['codigo*']).trim(),
-          fechaIngreso:         normalizarFechaSA(r['fechaIngreso*']) || '',
-          dias:                 String(r['dias'] || '15').trim(),
-          canAprobar:           String(r['canAprobar'] || 'false').trim(),
-          canCreateUsers:       String(r['canCreateUsers'] || 'false').trim(),
-          canGestionarFestivos: String(r['canGestionarFestivos'] || 'false').trim(),
-          canReporteDiario:     String(r['canReporteDiario'] || 'false').trim(),
-          fuentePlantilla:      true,
-        }));
-      if (empleados.length === 0) { Alert.alert('⚠️ Sin datos', 'No se encontraron empleados. Verifica que uses la plantilla correcta.'); setPlantillaCoriendo(false); return; }
-      await procesarEmpleadosSA(empleados, setPlantillaProgreso, setPlantillaResultado);
-    } catch(e) { Alert.alert('❌ Error', e.message); }
-    setPlantillaCoriendo(false);
-  };
+    }
+
+    const workbook = XLSX.read(base64, { type: 'base64' });
+    const sheet    = workbook.Sheets['Empleados'] ?? workbook.Sheets[workbook.SheetNames[0]];
+    const rows     = XLSX.utils.sheet_to_json(sheet, { defval: '', range: 2 });
+    const empleados = rows
+      .filter(r => r['codigo*'] && String(r['codigo*']).trim() !== '')
+      .map(r => ({
+        codigo:               String(r['codigo*']).trim(),
+        nombre:               String(r['nombre*'] || '').trim(),
+        cargo:                String(r['cargo*']  || 'Empleado').trim(),
+        departamento:         String(r['sub_departamento'] || r['departamento*'] || '').trim(),
+        rol:                  String(r['rol*'] || 'auxiliar').trim(),
+        password:             String(r['password*'] || r['codigo*']).trim(),
+        fechaIngreso:         normalizarFechaSA(r['fechaIngreso*']) || '',
+        fechaNacimiento:      String(r['fechaNacimiento'] || '').trim(),
+        dias:                 String(r['dias'] || '15').trim(),
+        canAprobar:           String(r['canAprobar'] || 'false').trim(),
+        canCreateUsers:       String(r['canCreateUsers'] || 'false').trim(),
+        canGestionarFestivos: String(r['canGestionarFestivos'] || 'false').trim(),
+        canReporteDiario:     String(r['canReporteDiario'] || 'false').trim(),
+        fuentePlantilla:      true,
+      }));
+    if (empleados.length === 0) { Alert.alert('⚠️ Sin datos', 'No se encontraron empleados. Verifica que uses la plantilla correcta.'); setPlantillaCoriendo(false); return; }
+    await procesarEmpleadosSA(empleados, setPlantillaProgreso, setPlantillaResultado);
+  } catch(e) { Alert.alert('❌ Error', e.message); }
+  setPlantillaCoriendo(false);
+};
 
   const iniciarSICAFDrive = async () => {
     setPlantillaCoriendo(true); setPlantillaProgreso(null); setPlantillaResultado(null);
