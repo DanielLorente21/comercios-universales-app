@@ -1,18 +1,19 @@
 // ════════════════════════════════════════════════════════════════════════════
 // src/constants/config.js — Constantes globales · Comercios Universales
 // ════════════════════════════════════════════════════════════════════════════
+import Constants from 'expo-constants';
 
-import baseConfig from '../../constantsconfig';
+const env = Constants.expoConfig?.extra || {};
 
 // ─── Firebase ────────────────────────────────────────────────────────────────
-export const PROJECT_ID      = baseConfig.FIREBASE_PROJECT_ID;
-export const API_KEY         = baseConfig.FIREBASE_API_KEY;
-export const DB_URL          = baseConfig.DB_URL;
-export const AUTH_URL        = baseConfig.AUTH_URL;
-export const AUTH_UPDATE_URL = baseConfig.AUTH_UPDATE_URL;
+export const PROJECT_ID      = 'permisoapplorenti';
+export const API_KEY         = env.EXPO_PUBLIC_FIREBASE_API_KEY || process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
+export const DB_URL          = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+export const AUTH_URL        = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`;
+export const AUTH_UPDATE_URL = `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${API_KEY}`;
 
 // ─── Sesión ──────────────────────────────────────────────────────────────────
-export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 // ─── Expo / Push Notifications ───────────────────────────────────────────────
 export const EXPO_PROJECT_ID = 'bc8bdb50-4561-4e06-99c4-778693833d30';
@@ -54,6 +55,7 @@ export const TEMAS = {
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 export const LOGO = require('../../assets/logocomercios.png');
 export const TAMAÑO_LOGO = 110;
+
 // ─── Tipos de permiso ─────────────────────────────────────────────────────────
 export const TIPOS = [
   { label: 'Vacaciones', icon: '🏖️', color: '#E8F4FD', iconColor: '#4A9EC4', descuenta: true  },

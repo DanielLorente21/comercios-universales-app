@@ -10,9 +10,9 @@
 .env.production
 .env.staging
 .env*.local
-
-
-
+constantsconfig.js
+# .gitignore
+src/constants/config.js
 
 # ── CRÍTICO: Credenciales Firebase / GSoogle ────────────
 # Nunca subir estos archivos a ningún repositorio
