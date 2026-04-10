@@ -303,6 +303,7 @@ export default function SuperAdmin({ onSalir }) {
   const [plantillaProgreso,  setPlantillaProgreso]  = useState(null);
   const [plantillaResultado, setPlantillaResultado] = useState(null);
   const [plantillaCoriendo,  setPlantillaCoriendo]  = useState(false);
+  
 
   // ── MANTENIMIENTO ──────────────────────────────────────────────────────────
   const [mantAnalisis,    setMantAnalisis]    = useState(null);
@@ -1318,6 +1319,7 @@ const procesarCargaEmpleados = async (empleados) => {
 
   const procesarEmpleadosSA = async (empleados, setProgreso, setResultado) => {
     let actualizados = 0, creados = 0, protegidos = 0, errores = 0;
+    const erroresDetalle = [];
     for (let i = 0; i < empleados.length; i++) {
       const emp = empleados[i];
       try {
@@ -1325,8 +1327,8 @@ const procesarCargaEmpleados = async (empleados) => {
         const qData = await qRes.json();
         if (qData[0]?.document) {
           const docExist = qData[0].document;
-          const docId    = docExist.document.name.split('/').pop(); // Access document.name
-          const fields   = docExist.fields;
+          const docId = docExist.name.split('/').pop(); // Access document.name
+          const fields = docExist.fields;
           const yaRol    = fields?.rol?.stringValue && fields.rol.stringValue !== '';
           const yaDept   = fields?.departamento?.stringValue && fields.departamento.stringValue !== '';
           const datos = { fechaIngreso: emp.fechaIngreso, nombre: emp.nombre };
@@ -1348,32 +1350,36 @@ const procesarCargaEmpleados = async (empleados) => {
           const authRes = await fetch(config.AUTH_SIGNUP_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: codeToEmail(emp.codigo), password: emp.password || emp.codigo, returnSecureToken: true })
+            body: JSON.stringify({ email: codeToEmail(emp.codigo), password: String(emp.password || emp.codigo).trim().padEnd(6, '0'), returnSecureToken: true })
           });
           const authData = await authRes.json();
 
-          await fsAdd('usuarios', {
-            codigo: emp.codigo, nombre: emp.nombre,
-            cargo: emp.cargo || 'Empleado',
-            departamento: emp.departamento || '',
-            rol: emp.rol || 'auxiliar',
-            password: emp.password || emp.codigo,
-            uid: authData.localId || '',
-            dias: emp.dias || '15',
-            fechaIngreso: emp.fechaIngreso,
-            ultimaAcumulacion: '',
-            canAprobar: emp.canAprobar || 'false',
-            canCreateUsers: emp.canCreateUsers || 'false',
+         await fsAdd('usuarios', {
+            codigo:              emp.codigo,
+            nombre:              emp.nombre,
+            cargo:               emp.cargo || 'Empleado',
+            departamento:        emp.departamento || '',
+            rol:                 emp.rol || 'auxiliar',
+            password:            emp.password || emp.codigo,
+            uid:                 authData.localId || '',
+            dias:                emp.dias || '15',
+            fechaIngreso:        emp.fechaIngreso,
+            fechaNacimiento:     emp.fechaNacimiento || '',
+            ultimaAcumulacion:   '',
+            empresaId:           'comercios-universales',
+            estado:              'Activo',
+           // canAprobar:          emp.canAprobar || 'false',///
+            canCreateUsers:      emp.canCreateUsers || 'false',
             canGestionarFestivos: emp.canGestionarFestivos || 'false',
-            canReporteDiario: emp.canReporteDiario || 'false',
-          }); // Use fsAdd helper
+            canReporteDiario:    emp.canReporteDiario || 'false',
+          });
           creados++;
         }
-      } catch { errores++; }
+      } catch (e) { errores++; erroresDetalle.push({ codigo: emp.codigo, nombre: emp.nombre, motivo: e.message || 'Error desconocido' }); }
       setProgreso({ actual: i+1, total: empleados.length, actualizados, creados, protegidos, errores });
       await new Promise(r => setTimeout(r, 100));
     }
-    setResultado({ total: empleados.length, actualizados, creados, protegidos, errores });
+    setResultado({ total: empleados.length, actualizados, creados, protegidos, errores, erroresDetalle });
   };
 
  const iniciarPlantillaExcel = async () => {
@@ -1424,7 +1430,7 @@ const procesarCargaEmpleados = async (empleados) => {
     const sheet    = workbook.Sheets['Empleados'] ?? workbook.Sheets[workbook.SheetNames[0]];
     const rows     = XLSX.utils.sheet_to_json(sheet, { defval: '', range: 2 });
     const empleados = rows
-      .filter(r => r['codigo*'] && String(r['codigo*']).trim() !== '')
+      .filter(r => r['codigo*'] && String(r['codigo*']).trim() !== '' && r['dias*'] && String(r['dias*']).trim() !== '')
       .map(r => ({
         codigo:               String(r['codigo*']).trim(),
         nombre:               String(r['nombre*'] || '').trim(),
@@ -1434,7 +1440,7 @@ const procesarCargaEmpleados = async (empleados) => {
         password:             String(r['password*'] || r['codigo*']).trim(),
         fechaIngreso:         normalizarFechaSA(r['fechaIngreso*']) || '',
         fechaNacimiento:      String(r['fechaNacimiento'] || '').trim(),
-        dias:                 String(r['dias'] || '15').trim(),
+        dias:                 String(r['dias*'] || '').trim(),
         canAprobar:           String(r['canAprobar'] || 'false').trim(),
         canCreateUsers:       String(r['canCreateUsers'] || 'false').trim(),
         canGestionarFestivos: String(r['canGestionarFestivos'] || 'false').trim(),
@@ -1543,6 +1549,17 @@ const procesarCargaEmpleados = async (empleados) => {
                     <Text style={{ color:r.color, fontWeight:'700', fontSize:13 }}>{r.val}</Text>
                   </View>
                 ))}
+                {plantillaResultado?.erroresDetalle?.length > 0 && (
+                  <View style={{ marginTop: 12 }}>
+                    <Text style={{ color: ROJO, fontWeight: '700', marginBottom: 6 }}>❌ Detalle de errores:</Text>
+                    {plantillaResultado.erroresDetalle.map((e, i) => (
+                      <View key={i} style={{ backgroundColor: ROJO+'11', borderRadius: 8, padding: 8, marginBottom: 6, borderWidth: 1, borderColor: ROJO+'44' }}>
+                        <Text style={{ color: 'white', fontWeight: '700', fontSize: 12 }}>#{e.codigo} — {e.nombre}</Text>
+                        <Text style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>{e.motivo}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
                 <TouchableOpacity style={[sa.btnAcceso, { backgroundColor:'#333', marginTop:12 }]} onPress={() => { setPlantillaResultado(null); setPlantillaProgreso(null); }}>
                   <Text style={sa.btnAccesoText}>🔄 Cargar otro archivo</Text>
                 </TouchableOpacity>

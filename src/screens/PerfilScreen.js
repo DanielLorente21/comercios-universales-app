@@ -100,14 +100,24 @@ export default function PerfilScreen({
       Alert.alert('Error', 'Las contraseñas nuevas no coinciden'); return;
     }
     setPassGuardando(true);
-    try {
-      await fsUpdate('usuarios', usuario.id, { password: passNueva });
-      setModalPassword(false);
-      setPassActual(''); setPassNueva(''); setPassConfirm('');
-      Alert.alert('✅', 'Contraseña actualizada correctamente');
-    } catch (e) {
-      Alert.alert('Error', e.message);
-    }
+          try {
+        const passNorm = String(passNueva).trim().padEnd(6, '0');
+        // Actualizar en Firebase Auth
+        const authRes = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:update?key=${API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: usuario.idToken, password: passNorm, returnSecureToken: true }),
+        });
+        const authData = await authRes.json();
+        if (authData.error) throw new Error(authData.error.message);
+        // Actualizar en Firestore
+        await fsUpdate('usuarios', usuario.id, { password: passNueva });
+        setModalPassword(false);
+        setPassActual(''); setPassNueva(''); setPassConfirm('');
+        Alert.alert('✅', 'Contraseña actualizada correctamente');
+      } catch (e) {
+        Alert.alert('Error', e.message);
+      }
     setPassGuardando(false);
   };
 
