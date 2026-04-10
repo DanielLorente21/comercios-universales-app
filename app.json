@@ -24,7 +24,6 @@
       "bundleIdentifier": "com.comerciosuniversales.permisos"
     },
     "android": {
-      "googleServicesFile": "./google-services.json",
       "package": "com.comerciosuniversales.permisos",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logocomercios.png",
@@ -39,19 +38,23 @@
           "icon": "./assets/logocomercios.png",
           "color": "#2C4A8C"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La app necesita acceso a tus fotos para actualizar tu foto de perfil.",
+          "cameraPermission": "La app necesita acceso a tu cámara para tomar una foto de perfil."
+        }
       ]
     ],
     "web": {
       "favicon": "./assets/logocomercios.png"
     },
     "description": "Sistema de Permisos Laborales — Comercios Universales",
-  "extra": {
-  "eas": {
-    "projectId": "bc8bdb50-4561-4e06-99c4-778693833d30"
-  }
-},
-  "dependencies": {
+    "extra": {
+      "eas": {
+        "projectId": "bc8bdb50-4561-4e06-99c4-778693833d30"
+      }
     }
-    
   }
 }
