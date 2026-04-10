@@ -125,7 +125,6 @@ export default function PerfilScreen({
   const items = [
     { icon: '🪪', label: 'Código de Empleado', valor: usuario.codigo },
     { icon: '📁', label: 'Departamento',        valor: usuario.departamento || 'N/A' },
-    { icon: '🔑', label: 'Rol en sistema',      valor: usuario.rol || 'auxiliar' },
     { icon: '📅', label: 'Días disponibles',    valor: `${Number.isInteger(diasDisponibles) ? diasDisponibles : diasDisponibles.toFixed(1)} días` },
     { icon: '🗓️', label: 'Fecha de ingreso',    valor: usuario.fechaIngreso || 'No registrada' },
     { icon: '🔄', label: 'Última acumulación',  valor: usuario.ultimaAcumulacion || 'Pendiente' },

@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ScrollView, ActivityIndicator,
+  StyleSheet, ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 
 import { AZUL, AZUL_CLARO } from '../constants/config';
@@ -49,6 +49,113 @@ const autoFormatearFecha = (texto) => {
   return `${nums.slice(0, 2)}/${nums.slice(2, 4)}/${nums.slice(4)}`;
 };
 
+// ── Tarjeta de Suspensión IGSS (empleado puede reportar extensión) ────────────
+function TarjetaSuspensionIGSS({ p, T, festivosMapState, usuario, onExtender, onGenerarPDF }) {
+  const [extendiendo,   setExtendiendo]   = useState(false);
+  const [nuevaFechaFin, setNuevaFechaFin] = useState('');
+  const [nuevaBoleta,   setNuevaBoleta]   = useState('');
+
+  return (
+    <View style={[s.aprobarCard, p.estado === 'Pendiente' && s.aprobarCardPendiente,
+      { backgroundColor: T.tarjeta, borderLeftWidth: 4, borderLeftColor: '#1565C0' }]}>
+
+      {/* Cabecera */}
+      <View style={s.aprobarHeader}>
+        <View style={[s.historialIconBox, { backgroundColor: '#E3F0FF' }]}>
+          <Text style={s.historialIconText}>🏥</Text>
+        </View>
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={[s.aprobarNombre, { color: T.texto }]}>Suspensión IGSS</Text>
+          <Text style={[s.aprobarFecha, { color: T.subTexto }]}>📅 {p.fechaInicio} → {p.fechaFin}</Text>
+          {p.numeroBoleta ? <Text style={[s.aprobarFecha, { color: T.subTexto }]}>📋 Boleta: {p.numeroBoleta}</Text> : null}
+          {p.fechaExtension ? <Text style={{ fontSize: 11, color: '#888', marginTop: 2 }}>🔄 Extendida el {p.fechaExtension}</Text> : null}
+        </View>
+        <View style={[s.estadoTag, { backgroundColor: colorEstado(p.estado) + '20' }]}>
+          <Text style={[s.estadoTagText, { color: colorEstado(p.estado) }]}>
+            {iconoEstado(p.estado)} {p.estado}
+          </Text>
+        </View>
+      </View>
+
+      {/* Detalle */}
+      <View style={[s.aprobarDetalle, { backgroundColor: '#E3F0FF' }]}>
+        <Text style={{ fontSize: 12, color: '#1976D2', fontWeight: '700', marginBottom: 4 }}>
+          🔒 Sin descuento de vacaciones
+        </Text>
+        <Text style={[s.aprobarMotivo, { color: T.subTexto }]}>💬 {p.motivo}</Text>
+      </View>
+
+      {p.aprobadoPor ? (
+        <Text style={{ color: '#888', fontSize: 11, marginTop: 6, marginLeft: 2 }}>
+          👤 {p.estado === 'Rechazado' ? 'Rechazado por:' : 'Confirmado por:'} {p.aprobadoPor}
+          {p.fechaAprobacion ? ` · ${p.fechaAprobacion}` : ''}
+        </Text>
+      ) : null}
+
+      {/* PDF */}
+      {p.estado === 'Aprobado' && (
+        <TouchableOpacity
+          style={{ marginTop: 10, backgroundColor: '#EEF2FB', borderRadius: 10, padding: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          onPress={() => onGenerarPDF(p, usuario)}
+        >
+          <Text style={{ color: '#2C4A8C', fontWeight: '700', fontSize: 13 }}>📄 Descargar comprobante PDF</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Botón de extensión — solo si está aprobada y el handler existe */}
+      {p.estado === 'Aprobado' && onExtender && (
+        !extendiendo ? (
+          <TouchableOpacity
+            style={{ marginTop: 8, backgroundColor: '#FFF3E0', borderRadius: 10, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: '#F59E0B' }}
+            onPress={() => setExtendiendo(true)}
+          >
+            <Text style={{ color: '#E65100', fontWeight: '700', fontSize: 12 }}>🔄 El IGSS extendió mi suspensión</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ backgroundColor: '#FFF8E1', borderRadius: 12, padding: 12, gap: 8, marginTop: 8 }}>
+            <Text style={{ fontWeight: '700', color: '#E65100', fontSize: 13 }}>🔄 Reportar extensión</Text>
+            <TextInput
+              style={{ backgroundColor: 'white', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#FFE0B2', fontSize: 14 }}
+              placeholder="Nueva fecha fin (DD/MM/AAAA)"
+              value={nuevaFechaFin}
+              onChangeText={(t) => setNuevaFechaFin(autoFormatearFecha(t))}
+              keyboardType="numeric"
+              maxLength={10}
+            />
+            <TextInput
+              style={{ backgroundColor: 'white', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#FFE0B2', fontSize: 14 }}
+              placeholder="Nuevo N° de boleta (opcional)"
+              value={nuevaBoleta}
+              onChangeText={setNuevaBoleta}
+            />
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={{ flex: 0.4, backgroundColor: 'white', borderRadius: 10, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: '#ddd' }}
+                onPress={() => { setExtendiendo(false); setNuevaFechaFin(''); setNuevaBoleta(''); }}
+              >
+                <Text style={{ color: '#888', fontWeight: '600' }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, backgroundColor: '#E65100', borderRadius: 10, padding: 10, alignItems: 'center' }}
+                onPress={() => {
+                  if (!REGEX_FECHA.test(nuevaFechaFin)) {
+                    Alert.alert('Error', 'Ingresa una fecha válida (DD/MM/AAAA)');
+                    return;
+                  }
+                  onExtender(p.id, nuevaFechaFin, nuevaBoleta);
+                  setExtendiendo(false); setNuevaFechaFin(''); setNuevaBoleta('');
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: '700' }}>Guardar extensión</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )
+      )}
+    </View>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function HistorialScreen({
@@ -60,6 +167,7 @@ export default function HistorialScreen({
   onActualizar,
   onMarcarRegreso,
   onBuscarPorFechas,
+  onExtenderSuspensionIGSS,
 }) {
 
   const [filtroHistorial,    setFiltroHistorial]    = useState('Todos');
@@ -233,6 +341,21 @@ export default function HistorialScreen({
       {/* ── Lista de permisos ── */}
       {!cargando && permisosFiltered.map(p => {
         const tipoInfo = TIPOS.find(t => t.label === p.tipo);
+        const esSuspension = p.tipo === 'Suspension IGSS' || p.esSuspension === 'true';
+        // Suspensión IGSS → tarjeta especial con botón de extensión
+        if (esSuspension) {
+          return (
+            <TarjetaSuspensionIGSS
+              key={p.id}
+              p={p} T={T}
+              festivosMapState={festivosMapState}
+              usuario={usuario}
+              onExtender={onExtenderSuspensionIGSS}
+              onGenerarPDF={generarPDF}
+            />
+          );
+        }
+
         return (
           <View key={p.id} style={[s.aprobarCard, p.estado === 'Pendiente' && s.aprobarCardPendiente, { backgroundColor: T.tarjeta }]}>
             <View style={s.aprobarHeader}>

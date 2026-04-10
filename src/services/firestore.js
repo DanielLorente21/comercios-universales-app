@@ -156,6 +156,8 @@ export const cargarFestivosSet = async () => {
   } catch { return {}; }
 };
 
+// firestore.js — reemplazar fsQueryRecientes completo
+
 export const fsQueryRecientes = async (col, campo, valor, limite = 3) => {
   try {
     const res = await fetch(`${DB_URL}:runQuery?key=${API_KEY}`, {
@@ -164,20 +166,31 @@ export const fsQueryRecientes = async (col, campo, valor, limite = 3) => {
       body: JSON.stringify({
         structuredQuery: {
           from: [{ collectionId: col }],
-          where: { fieldFilter: { field: { fieldPath: campo }, op: 'EQUAL', value: { stringValue: valor } } },
-          orderBy: [{ field: { fieldPath: 'creadoEn' }, direction: 'DESCENDING' }],
-          limit: limite,
-        }
-      })
+          where: {
+            fieldFilter: {
+              field: { fieldPath: campo },
+              op: 'EQUAL',
+              value: { stringValue: valor },
+            },
+          },
+          // ← SIN orderBy para evitar el índice compuesto
+        },
+      }),
     });
     const data = await res.json();
     if (!data[0]?.document) return [];
-    return data.filter(r => r.document).map(r => {
-      const id = r.document.name.split('/').pop();
-      const f  = r.document.fields;
-      const obj = { id };
-      for (const k in f) obj[k] = campoAValor(f[k]);
-      return obj;
-    });
+    return data
+      .filter(r => r.document)
+      .map(r => {
+        const id  = r.document.name.split('/').pop();
+        const f   = r.document.fields;
+        const obj = { id };
+        for (const k in f) obj[k] = campoAValor(f[k]);
+        return obj;
+      })
+      .sort((a, b) => (b.creadoEn ?? '').localeCompare(a.creadoEn ?? ''))  // orden cliente
+      .slice(0, limite);  // tomar los N más recientes
   } catch { return []; }
 };
+   
+  

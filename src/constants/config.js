@@ -7,10 +7,10 @@ const env = Constants.expoConfig?.extra || {};
 
 // ─── Firebase ────────────────────────────────────────────────────────────────
 export const PROJECT_ID      = 'permisoapplorenti';
-export const API_KEY         = env.EXPO_PUBLIC_FIREBASE_API_KEY || process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
+export const API_KEY         = process.env.EXPO_PUBLIC_FIREBASE_API_KEY;
 export const DB_URL          = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-export const AUTH_URL        = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`;
-export const AUTH_UPDATE_URL = `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${API_KEY}`;
+export const AUTH_URL        = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.EXPO_PUBLIC_FIREBASE_API_KEY}`;
+export const AUTH_UPDATE_URL = `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${process.env.EXPO_PUBLIC_FIREBASE_API_KEY}`;
 
 // ─── Sesión ──────────────────────────────────────────────────────────────────
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;

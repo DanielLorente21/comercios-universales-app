@@ -881,6 +881,7 @@ const cargarPermisos = async (usuarioRef) => {
           onActualizar={() => cargarPermisos(usuario)}
           onMarcarRegreso={handleMarcarRegreso}
           onBuscarPorFechas={buscarPermisosPorFechas}
+          onExtenderSuspensionIGSS={handleExtenderSuspensionIGSS}
          />
         )}
         {tabActivo === 'reporte' && (

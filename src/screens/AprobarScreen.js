@@ -105,7 +105,7 @@ function TarjetaSuspensionIGSS({ p, T, onAprobar, onRechazar, onExtender }) {
         </View>
       )}
 
-      {/* Suspensión aprobada: mostrar opción de extender */}
+      {/* Suspension aprobada: mostrar opción de extender */}
       {p.estado === 'Aprobado' && (
         <View style={{ gap: 8 }}>
           <View style={{ backgroundColor: '#EDF7ED', borderRadius: 8, padding: 8 }}>
@@ -178,7 +178,7 @@ export default function AprobarScreen({
 
   const renderItem = ({ item: p }) => {
     // ── Tarjeta de Suspensión IGSS ──────────────────────────────────
-    if (p.tipo === 'Suspensión IGSS' || p.esSuspension === 'true') {
+    if (p.tipo === 'Suspension IGSS' || p.esSuspension === 'true') {
       return (
         <TarjetaSuspensionIGSS
           p={p} T={T}

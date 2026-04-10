@@ -194,32 +194,21 @@ export default function SolicitudScreen({
         </>
 
       /* ── Formulario Suspensión IGSS ──────────────────────────────── */
-      ) : tipoSeleccionado === 'IGSS' && subtipoIGSS === '' ? (
-        // Esperando que el usuario seleccione consulta o emergencia
-        null
-
-      ) : tipoSeleccionado === 'IGSS' && (
-        // Mostrar opción de Suspensión IGSS junto al formulario normal
-        <>
-          {/* Separador de sección */}
-          <View style={{ backgroundColor: '#E3F0FF', borderRadius: 14, padding: 14, marginBottom: 16 }}>
-            <Text style={{ fontWeight: '800', color: '#1565C0', fontSize: 14, marginBottom: 4 }}>🏥 ¿Tienes una suspensión del IGSS?</Text>
-            <Text style={{ fontSize: 12, color: '#1976D2' }}>
-              Si el IGSS te suspendió por enfermedad o accidente, regístralo aquí.{'\n'}
-              <Text style={{ fontWeight: '700' }}>No descuenta días de vacaciones.</Text>
-            </Text>
-            <TouchableOpacity
-              style={{ backgroundColor: '#1565C0', borderRadius: 10, padding: 10, alignItems: 'center', marginTop: 10 }}
-              onPress={() => setTipoSeleccionado('SuspensionIGSS')}
-            >
-              <Text style={{ color: 'white', fontWeight: '700' }}>📋 Registrar Suspensión IGSS</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Formulario normal de días IGSS */}
-          {renderFormularioDias()}
-        </>
-      )}
+     ) : tipoSeleccionado === 'IGSS' && (
+  <View style={{ backgroundColor: '#E3F0FF', borderRadius: 14, padding: 14, marginBottom: 16 }}>
+    <Text style={{ fontWeight: '800', color: '#1565C0', fontSize: 14, marginBottom: 4 }}>🏥 ¿Tienes una suspensión del IGSS?</Text>
+    <Text style={{ fontSize: 12, color: '#1976D2' }}>
+      Si el IGSS te suspendió por enfermedad o accidente, regístralo aquí.{'\n'}
+      <Text style={{ fontWeight: '700' }}>No descuenta días de vacaciones.</Text>
+    </Text>
+    <TouchableOpacity
+      style={{ backgroundColor: '#1565C0', borderRadius: 10, padding: 10, alignItems: 'center', marginTop: 10 }}
+      onPress={() => setTipoSeleccionado('SuspensionIGSS')}
+    >
+      <Text style={{ color: 'white', fontWeight: '700' }}>📋 Registrar Suspensión IGSS</Text>
+    </TouchableOpacity>
+  </View>
+)}
 
       {/* ── Formulario Suspensión IGSS completo ──────────────────────── */}
       {tipoSeleccionado === 'SuspensionIGSS' && (
