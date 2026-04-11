@@ -10,7 +10,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 
-import { AZUL, PROJECT_ID, API_KEY } from '../constants/config';
+import { AZUL } from '../constants/config';
 import { fsUpdate } from '../services/firestore';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,6 +42,31 @@ export default function PerfilScreen({
   const [passGuardando, setPassGuardando] = useState(false);
   const [cargando,      setCargando]      = useState(false);
 
+  // ─── Cloudinary config ───────────────────────────────────────────────────
+  const CLOUDINARY_CLOUD  = 'djejwknpe';
+  const CLOUDINARY_PRESET = 'empleados_cu';
+
+  // ─── Subir imagen a Cloudinary ────────────────────────────────────────────
+  // Preset unsigned no permite overwrite, usamos public_id único por versión.
+  // El nombre incluye el código del empleado + timestamp para que sea único.
+  // Las fotos viejas se van acumulando en Cloudinary (25GB gratis — no es problema).
+  const subirACloudinary = async (base64, codigo) => {
+    const publicId = `empleado_${codigo}_${Date.now()}`;
+    const formData = new FormData();
+    formData.append('file', `data:image/jpeg;base64,${base64}`);
+    formData.append('upload_preset', CLOUDINARY_PRESET);
+    formData.append('public_id', publicId);
+    formData.append('folder', 'empleados');
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+      { method: 'POST', body: formData }
+    );
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.secure_url;
+  };
+
   // ─── Cambiar foto de perfil ───────────────────────────────────────────────
   const seleccionarFoto = async () => {
     try {
@@ -51,32 +76,24 @@ export default function PerfilScreen({
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.3, base64: true,
+        mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.5, base64: true,
       });
       if (!result.canceled && result.assets[0]) {
-        const b64     = result.assets[0].base64;
-        const dataUrl = `data:image/jpeg;base64,${b64}`;
-        onFotoActualizada(dataUrl);
-        await AsyncStorage.setItem(`foto_perfil_${usuario.id}`, dataUrl);
+        const b64 = result.assets[0].base64;
         setCargando(true);
         try {
-          let urlGuardada = dataUrl;
-          try {
-            const storageUrl = `https://firebasestorage.googleapis.com/v0/b/${PROJECT_ID}.appspot.com/o/fotos%2F${usuario.id}.jpg?uploadType=media`;
-            const uploadRes  = await fetch(storageUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'image/jpeg', 'Authorization': `Firebase ${API_KEY}` },
-              body: Uint8Array.from(atob(b64), c => c.charCodeAt(0)),
-            });
-            if (uploadRes.ok)
-              urlGuardada = `https://firebasestorage.googleapis.com/v0/b/${PROJECT_ID}.appspot.com/o/fotos%2F${usuario.id}.jpg?alt=media`;
-          } catch (storageErr) {
-            console.log('Storage no disponible:', storageErr.message);
-          }
-          await fsUpdate('usuarios', usuario.id, { fotoPerfil: urlGuardada });
+          // Subir a Cloudinary — genera URL única por versión
+          const urlCloudinary = await subirACloudinary(b64, usuario.codigo);
+
+          // Actualizar preview local inmediatamente
+          onFotoActualizada(urlCloudinary);
+          await AsyncStorage.setItem(`foto_perfil_${usuario.id}`, urlCloudinary);
+
+          // Guardar solo la URL en Firestore (no el base64)
+          await fsUpdate('usuarios', usuario.id, { fotoPerfil: urlCloudinary });
           Alert.alert('✅', 'Foto de perfil actualizada correctamente');
         } catch (e) {
-          Alert.alert('Error', 'No se pudo guardar en la nube: ' + e.message);
+          Alert.alert('Error', 'No se pudo guardar la foto: ' + e.message);
         }
         setCargando(false);
       }

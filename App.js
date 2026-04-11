@@ -222,6 +222,7 @@ const cargarPermisos = async (usuarioRef) => {
 
   const cargarNotificaciones = async (usuarioParam) => {
     const ref = usuarioParam ?? usuario;
+
     if (!ref?.codigo) return [];
     setNotifCargando(true);
     try {
@@ -230,6 +231,7 @@ const cargarPermisos = async (usuarioRef) => {
         body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'notificaciones' }], where: { fieldFilter: { field: { fieldPath: 'codigo' }, op: 'EQUAL', value: { stringValue: ref.codigo } } }, orderBy: [{ field: { fieldPath: 'fecha' }, direction: 'DESCENDING' }], limit: 30 } })
       });
       const data = await res.json();
+
       if (!data[0]?.document) { setNotificaciones([]); setNotifCargando(false); return []; }
       const lista = data.filter(r => r.document).map(r => {
         const id = r.document.name.split('/').pop();
@@ -242,6 +244,7 @@ const cargarPermisos = async (usuarioRef) => {
 
   const marcarTodasLeidas = async (lista) => {
     const noLeidas = lista.filter(n => !n.leido);
+    if (noLeidas.length === 0) return;
     await Promise.all(noLeidas.map(n => fsUpdate('notificaciones', n.id, { leido: 'true' }).catch(() => {})));
     setNotificaciones(prev => prev.map(n => ({ ...n, leido: true })));
   };
@@ -250,7 +253,7 @@ const cargarPermisos = async (usuarioRef) => {
 
   const abrirPanelNotif = async () => {
     setPanelNotif(true);
-    const listaFresca = await cargarNotificaciones();
+    const listaFresca = await cargarNotificaciones(usuario);
     await marcarTodasLeidas(listaFresca);
   };
 
@@ -784,7 +787,8 @@ const cargarPermisos = async (usuarioRef) => {
   );
 
   return (
-    <SafeAreaView style={[s.appContainer, { backgroundColor: T.fondo }]}>
+   <SafeAreaView style={[s.appContainer, { backgroundColor: T.fondo }]}>
+  <View style={{ flex: 1, position: 'relative' }}>
       <StatusBar barStyle={T.statusBar} backgroundColor={T.header} />
 
       {/* ── Header ── */}
@@ -799,7 +803,7 @@ const cargarPermisos = async (usuarioRef) => {
         <View style={s.appHeaderRight}>
           <TouchableOpacity style={s.notifBtn} onPress={abrirPanelNotif}>
             <Text>🔔</Text>
-            {(notifNoLeidas > 0 || pendientesCount > 0) && <View style={s.notifBadge}><Text style={s.notifBadgeText}>{notifNoLeidas || pendientesCount}</Text></View>}
+           {pendientesCount > 0 && <View style={s.notifBadge}><Text style={s.notifBadgeText}>{pendientesCount}</Text></View>}
           </TouchableOpacity>
           {fotoPerfil
             ? <Image source={{ uri: fotoPerfil }} style={{ width: 36, height: 36, borderRadius: 18 }} />
@@ -819,7 +823,7 @@ const cargarPermisos = async (usuarioRef) => {
             {notifCargando ? <ActivityIndicator color={AZUL} style={{ margin: 30 }} /> : (
               <ScrollView style={{ padding: 16 }}>
                 {notificaciones.length === 0 && <View style={{ alignItems: 'center', paddingVertical: 40 }}><Text style={{ fontSize: 32, marginBottom: 10 }}>🔕</Text><Text style={{ color: T.subTexto, fontSize: 14 }}>No tienes notificaciones</Text></View>}
-                {notificaciones.map(n => (
+                {notificaciones.filter(n => !n.leido).map(n => (
                   <View key={n.id} style={{ backgroundColor: n.leido ? T.inputFondo : T.fondo, borderRadius: 14, padding: 14, marginBottom: 10, borderLeftWidth: 3, borderLeftColor: n.leido ? T.borde : AZUL }}>
                     <Text style={{ fontWeight: '700', fontSize: 14, color: T.texto, marginBottom: 4 }}>{n.titulo}</Text>
                     <Text style={{ fontSize: 13, color: T.subTexto, marginBottom: 6 }}>{n.cuerpo}</Text>
@@ -924,6 +928,7 @@ const cargarPermisos = async (usuarioRef) => {
           </TouchableOpacity>
         ))}
       </View>
+       </View>
     </SafeAreaView>
   );
 }
