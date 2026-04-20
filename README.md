@@ -1,62 +1,25 @@
-# — Sistema de Gestión de Permisos
+ComerciosApp
+Sistema interno de gestión de permisos y ausencias para empleados de Comercios Universales.
+¿Qué hace?
+Permite a los empleados solicitar permisos laborales (vacaciones, IGSS, personal) desde su celular o computadora, y a los jefes aprobarlos o rechazarlos en tiempo real.
+Funcionalidades principales:
 
-Aplicación móvil y web para gestión de permisos y ausencias de empleados, desarrollada con **React Native + Expo** y **Firebase** como backend.
+Solicitud de permisos por tipo: Vacaciones, IGSS y Personal
+Flujo de aprobación jerárquico por departamento y rol
+Acumulación automática de días de vacaciones (1.25 días/mes desde fecha de contratación)
+Historial de permisos por empleado
+Generación de reportes en PDF
+Notificaciones push al aprobar o rechazar solicitudes
+Panel de administración para gestión de empleados
 
----
+Tecnologías
 
-## 🚀 Instalación
+React Native con Expo
+Firebase (Authentication + Firestore)
+Firebase Hosting para versión web
+API REST para comunicación con Firestore
 
-### 1. Clonar el repositorio
-```bash
-git clone https://github.com/tu-usuario/solucontrol.git
-cd solucontrol
-```
-
-### 2. Instalar dependencias
-```bash
-npm install
-```
-
-### 3. Configurar variables de entorno
-```bash
-cp .env.example .env
-
-
-
-
----
-
-## 🏗️ Estructura del proyecto
-
-```
-solucontrol/
-├── App.js                  # Componente principal
-├── constantsconfig.js      # Configuración centralizada (sin claves hardcodeadas)
-├── AdminUserModal.js       # Modal de gestión de usuarios
-├── SuperAdmin.js           # Panel de superadministrador
-├── GestionFestivos.js      # Gestión de días festivos
-├── functions/              # Firebase Cloud Functions
-├── firestore.rules         # Reglas de seguridad de Firestore
-├── firebase.json           # Configuración de Firebase Hosting
-├── .env.example            # Plantilla de variables de entorno
-└── .gitignore              # Archivos excluidos del repositorio
-```
-
----
-
-## 🔐 Seguridad
-
-- Las API keys y credenciales **nunca** están en el código fuente
-- Todas las claves se cargan desde el archivo `.env` (no incluido en el repo)
-- El archivo `google-services.json` está excluido del repositorio
-- Las reglas de Firestore están configuradas para restringir acceso por rol
-
----
-
-## 🔧 Stack tecnológico
-
-- **Frontend**: React Native + Expo (~54)
-- **Backend**: Firebase Firestore + Firebase Auth + Cloud Functions
-- **Hosting**: Firebase Hosting
-- **Notificaciones**: Expo Notifications (FCM)
-
+Plataformas
+Disponible como aplicación móvil (Android) y versión web en permisoapplorenti.web.app
+Desarrollador
+Álvaro Daniel Lorente Peralta
